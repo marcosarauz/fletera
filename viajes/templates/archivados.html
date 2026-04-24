@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Viajes archivados</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+
+<div class="container mt-4">
+
+    <h1 class="mb-3">🗂️ Viajes archivados</h1>
+
+    <a href="/" class="btn btn-primary mb-3">Volver al inicio</a>
+
+    {% for viaje in viajes %}
+        <div class="card p-3 mb-2">
+            <strong>{{ viaje.cliente }}</strong><br>
+            {{ viaje.origen }} → {{ viaje.destino }}<br>
+            Fecha: {{ viaje.fecha }}<br>
+
+            {% if viaje.precio_total %}
+                Total: $ {{ viaje.precio_total }}<br>
+            {% endif %}
+
+            <a href="/restaurar/{{ viaje.id }}/" class="btn btn-success btn-sm mt-2">
+                Restaurar
+            </a>
+        </div>
+    {% empty %}
+        <p>No hay viajes archivados.</p>
+    {% endfor %}
+
+</div>
+
+</body>
+</html>

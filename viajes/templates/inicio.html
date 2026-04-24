@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fletera</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+
+<div class="container mt-4">
+
+    <h1 class="mb-3">🚚 Viajes</h1>
+
+    <a href="/admin/" class="btn btn-outline-dark mb-3">⚙️ Admin</a>
+    <a href="/crear/" class="btn btn-primary mb-3">➕ Nuevo viaje</a>
+    <a href="/archivados/" class="btn btn-secondary mb-3">🗂️ Archivados</a>
+
+    <div class="alert alert-success">
+        <strong>Total ganado: $ {{ total }}</strong>
+    </div>
+
+    <div class="row">
+
+        <div class="col-md-4">
+            <h4>🟡 Pendientes</h4>
+            {% for viaje in pendientes %}
+                <div class="card p-2 mb-2">
+                    <strong>{{ viaje.cliente }}</strong><br>
+                    {{ viaje.origen }} → {{ viaje.destino }}<br>
+
+                    <a href="/estado/{{ viaje.id }}/" class="btn btn-warning btn-sm mt-1">Iniciar</a>
+
+                    <a href="/archivar/{{ viaje.id }}/"
+                       class="btn btn-danger btn-sm mt-1"
+                       onclick="return confirm('¿Archivar viaje?');">
+                        Archivar
+                    </a>
+                </div>
+            {% empty %}
+                <p>No hay</p>
+            {% endfor %}
+        </div>
+
+        <div class="col-md-4">
+            <h4>🔵 En curso</h4>
+            {% for viaje in en_curso %}
+                <div class="card p-2 mb-2">
+                    <strong>{{ viaje.cliente }}</strong><br>
+                    {{ viaje.origen }} → {{ viaje.destino }}<br>
+
+                    <a href="/estado/{{ viaje.id }}/" class="btn btn-primary btn-sm mt-1">Finalizar</a>
+
+                    <a href="/archivar/{{ viaje.id }}/"
+                       class="btn btn-danger btn-sm mt-1"
+                       onclick="return confirm('¿Archivar viaje?');">
+                        Archivar
+                    </a>
+                </div>
+            {% empty %}
+                <p>No hay</p>
+            {% endfor %}
+        </div>
+
+        <div class="col-md-4">
+            <h4>🟢 Terminados</h4>
+            {% for viaje in terminados %}
+                <div class="card p-2 mb-2">
+                    <strong>{{ viaje.cliente }}</strong><br>
+                    {{ viaje.origen }} → {{ viaje.destino }}<br>
+                    $ {{ viaje.precio_total }}<br>
+
+                    <a href="/comprobante/{{ viaje.id }}/" target="_blank" class="btn btn-success btn-sm mt-1">PDF</a>
+
+                    <a href="/archivar/{{ viaje.id }}/"
+                       class="btn btn-danger btn-sm mt-1"
+                       onclick="return confirm('¿Archivar viaje?');">
+                        Archivar
+                    </a>
+                </div>
+            {% empty %}
+                <p>No hay</p>
+            {% endfor %}
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>
