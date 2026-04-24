@@ -1,0 +1,38 @@
+/* 1. Botones de Agregar y Modificar (Ya funcionan, pero los mantenemos) */
+.btn-success, .addlink { 
+    background-color: #1f2b38 !important; 
+    border-color: #1f2b38 !important; 
+    color: white !important;
+}
+.btn-info, .changelink { 
+    background-color: #991832 !important; 
+    border-color: #991832 !important; 
+    color: white !important;
+}
+
+/* 2. CAMBIAR LAS LETRAS AZULES (Camionetas, Choferes, etc.) */
+/* Usamos selectores más específicos para que Django no nos gane */
+#content-main .model-viajes a, 
+#content-main .model-camioneta a, 
+#content-main .model-chofer a, 
+#content-main .model-cliente a,
+.model-viajes th a,
+.module th a {
+    color: #1f2b38 !important; /* Color oscuro como el de agregar */
+    font-size: 1.15rem !important; /* Más grande */
+    font-weight: 800 !important;  /* Bien negrita */
+    text-decoration: none !important; /* Le quita el subrayado si lo tiene */
+}
+
+/* 3. Cambiar el color cuando pasas el mouse por encima (opcional) */
+#content-main .model-viajes a:hover, 
+#content-main .model-camioneta a:hover {
+    color: #991832 !important; /* Se pone bordó al pasar el mouse */
+}
+
+/* 4. Letras del Menú Lateral (Sidebar) */
+.nav-sidebar .nav-link p {
+    font-size: 1.1rem !important;
+    font-weight: bold !important;
+    color: white !important;
+}
