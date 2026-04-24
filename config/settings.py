@@ -11,36 +11,29 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# --- RUTAS BÁSICAS ---
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
+# --- SEGURIDAD ---
 SECRET_KEY = 'django-insecure-%r+z5=#9ji+n+z1$@4gkwtc0usf!_1l0_*8liu_u##^%g74cf#'
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
 ALLOWED_HOSTS = []
 
-
-# Application definition
-
+# --- APLICACIONES ---
 INSTALLED_APPS = [
+    'jazzmin', # Jazzmin siempre primero
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
-    'viajes',
+    'viajes', 
 ]
 
+# --- MIDDLEWARE ---
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -53,6 +46,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'config.urls'
 
+# --- TEMPLATES ---
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -70,10 +64,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-
+# --- BASE DE DATOS ---
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -81,39 +72,62 @@ DATABASES = {
     }
 }
 
-
-# Password validation
-# https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
-
+# --- VALIDACIÓN DE CONTRASEÑAS ---
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/6.0/topics/i18n/
-
+# --- LOCALIZACIÓN ---
 LANGUAGE_CODE = 'es-ar'
-
 TIME_ZONE = 'America/Argentina/Buenos_Aires'
-
 USE_I18N = True
-
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/6.0/howto/static-files/
-
+# --- ARCHIVOS ESTÁTICOS (CSS, IMAGES) ---
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+
+# --- CONFIGURACIÓN DE JAZZMIN (ADMIN ESTÉTICO) ---
+JAZZMIN_SETTINGS = {
+    "site_title": "Logística Fletera",
+    "site_header": "Administración Fletera",
+    "welcome_sign": "Bienvenido al Sistema de Logística",
+    "site_logo": "logo.png", 
+    "custom_css": "admin_custom.css", 
+    "theme": "default", 
+    "dark_mode_theme": "darkly",
+    "hide_apps": ["auth"], 
+    "topmenu_links": [
+        {"name": "Dashboard", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {
+            "name": "Crear Nuevo Usuario", 
+            "url": "admin:auth_user_add", 
+            "icon": "fas fa-user-plus",   
+            "permissions": ["auth.add_user"] 
+        },
+        {"name": "Ver Sitio Público", "url": "/", "new_window": True},
+    ],
+    "order_with_respect_to": ["viajes", "auth"],
+    "icons": {
+        "auth.user": "fas fa-user",
+        "viajes.viaje": "fas fa-truck-moving",
+        "viajes.camioneta": "fas fa-shuttle-van",
+        "viajes.chofer": "fas fa-id-card",
+        "viajes.cliente": "fas fa-building",
+    },
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar": "navbar-dark navbar-navy", 
+    "sidebar": "sidebar-dark-navy",
+    "sidebar_fixed": True,
+    "theme": "default",
+    "show_ui_builder": False, 
+}
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
