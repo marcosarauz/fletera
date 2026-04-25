@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block titulo %}Reportes{% endblock %}
+
+{% block contenido %}
+
+<div class="panel">
+    <h2 class="mb-4">📊 Reportes</h2>
+
+    <div class="row">
+        <div class="col-md-3">
+            <div class="panel">
+                <h5>Total ganado</h5>
+                <h3>$ {{ total_ganado }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="panel">
+                <h5>Total viajes</h5>
+                <h3>{{ total_viajes }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="panel">
+                <h5>Terminados</h5>
+                <h3>{{ terminados }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="panel">
+                <h5>Pendientes</h5>
+                <h3>{{ pendientes }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

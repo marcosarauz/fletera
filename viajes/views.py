@@ -1,255 +1,215 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.conf import settings
 from .models import Viaje, Cliente, Chofer, Camioneta
 from django.db.models import Sum
 from django.http import HttpResponse
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
-from reportlab.lib import colors
-from datetime import datetime
-import os
+from decimal import Decimal
 
 
-def cargar_camionetas_base():
-    camionetas = [
-        ("Fiat Fiorino", "chica"),
-        ("Renault Kangoo", "chica"),
-        ("Peugeot Partner", "chica"),
-        ("Citroën Berlingo", "chica"),
-        ("Volkswagen Saveiro", "chica"),
-        ("Fiat Ducato", "grande"),
-        ("Mercedes-Benz Sprinter", "grande"),
-        ("Renault Master", "grande"),
-        ("Iveco Daily", "grande"),
-        ("Ford Transit", "grande"),
-    ]
-
-    for nombre, tamanio in camionetas:
-        Camioneta.objects.get_or_create(
-            nombre=nombre,
-            defaults={"tamanio": tamanio, "valor_hora": 0}
-        )
-
-
+# 🔥 INICIO
 def inicio(request):
-    cargar_camionetas_base()
+    viajes = Viaje.objects.filter(activo=True)
 
-    fecha = request.GET.get("fecha")
+    total_viajes = viajes.count()
+    pendientes = viajes.filter(estado='pendiente')
+    en_curso = viajes.filter(estado='en_curso')
+    terminados = viajes.filter(estado='terminado')
 
-    if fecha:
-        viajes = Viaje.objects.filter(fecha=fecha, activo=True).order_by("-hora")
-    else:
-        viajes = Viaje.objects.filter(activo=True).order_by("-fecha", "-hora")
+    total_ganado = terminados.aggregate(
+        total=Sum('precio_total')
+    )['total'] or 0
 
-    pendientes = viajes.filter(estado="pendiente")
-    en_curso = viajes.filter(estado="en_curso")
-    terminados = viajes.filter(estado="terminado")
+    viajes_recientes = viajes.order_by('-fecha', '-hora')[:5]
 
-    total = terminados.aggregate(Sum("precio_total"))["precio_total__sum"] or 0
-
-    return render(request, "inicio.html", {
-        "pendientes": pendientes,
-        "en_curso": en_curso,
-        "terminados": terminados,
-        "total": total,
-        "fecha_seleccionada": fecha
+    return render(request, 'inicio.html', {
+        'viajes_recientes': viajes_recientes,
+        'total_viajes': total_viajes,
+        'pendientes': pendientes,
+        'en_curso': en_curso,
+        'terminados': terminados,
+        'total_ganado': total_ganado,
     })
 
 
+# 🔥 TODOS LOS VIAJES
+def todos_los_viajes(request):
+    viajes = Viaje.objects.filter(activo=True).order_by('-fecha', '-hora')
+
+    return render(request, 'todos_los_viajes.html', {
+        'viajes': viajes
+    })
+
+
+# 🔥 REPORTES
+def reportes(request):
+    viajes = Viaje.objects.filter(activo=True)
+
+    total_ganado = viajes.filter(
+        estado='terminado'
+    ).aggregate(Sum('precio_total'))['precio_total__sum'] or 0
+
+    return render(request, 'reportes.html', {
+        'total_ganado': total_ganado,
+        'total_viajes': viajes.count(),
+        'terminados': viajes.filter(estado='terminado').count(),
+        'pendientes': viajes.filter(estado='pendiente').count(),
+        'en_curso': viajes.filter(estado='en_curso').count(),
+    })
+
+
+# 🔥 CREAR VIAJE
 def crear_viaje(request):
-    if request.method == "POST":
-        nombre = request.POST.get("nombre", "").strip()
-        telefono = request.POST.get("telefono", "").strip()
-        origen = request.POST.get("origen", "").strip()
-        destino = request.POST.get("destino", "").strip()
-        fecha = request.POST.get("fecha")
-        hora = request.POST.get("hora")
-        observaciones = request.POST.get("observaciones", "").strip()
+    clientes = Cliente.objects.all()
+    choferes = Chofer.objects.filter(activo=True)
+    camionetas = Camioneta.objects.all()
 
-        if telefono and not telefono.isdigit():
-            return HttpResponse("Error: el teléfono solo debe contener números")
+    if request.method == 'POST':
+        cliente_id = request.POST.get('cliente')
+        chofer_id = request.POST.get('chofer')
+        camioneta_id = request.POST.get('camioneta')
 
-        cliente, _ = Cliente.objects.get_or_create(
-            nombre=nombre,
-            telefono=telefono
-        )
+        origen = request.POST.get('origen')
+        destino = request.POST.get('destino')
+        fecha = request.POST.get('fecha')
+        hora = request.POST.get('hora')
+        observaciones = request.POST.get('observaciones')
 
         Viaje.objects.create(
-            cliente=cliente,
+            cliente_id=cliente_id,
+            chofer_id=chofer_id,
+            camioneta_id=camioneta_id,
             origen=origen,
             destino=destino,
             fecha=fecha,
-            hora=hora if hora else None,
-            observaciones=observaciones
+            hora=hora,
+            observaciones=observaciones,
+            estado='pendiente',
+            activo=True
         )
 
-        return redirect("/")
+        return redirect('/')
 
-    return render(request, "crear.html")
-
-
-def cambiar_estado(request, id):
-    viaje = get_object_or_404(Viaje, id=id)
-
-    if viaje.estado == "pendiente":
-        viaje.estado = "en_curso"
-        viaje.save()
-        return redirect("/")
-
-    if viaje.estado == "en_curso":
-        return redirect(f"/finalizar/{viaje.id}/")
-
-    return redirect("/")
-
-
-def finalizar_viaje(request, id):
-    cargar_camionetas_base()
-
-    viaje = get_object_or_404(Viaje, id=id)
-    choferes = Chofer.objects.filter(activo=True)
-    error = None
-
-    if request.method == "POST":
-        chofer_id = request.POST.get("chofer")
-        horas = request.POST.get("horas")
-        minutos = request.POST.get("minutos")
-
-        if not chofer_id:
-            error = "Tenés que seleccionar un chofer."
-        else:
-            try:
-                horas = int(horas)
-                minutos = int(minutos)
-            except:
-                error = "Horas y minutos deben ser números."
-
-        if not error:
-            chofer = get_object_or_404(Chofer, id=chofer_id)
-
-            if not chofer.camioneta:
-                error = "Este chofer no tiene camioneta asignada."
-            elif chofer.camioneta.valor_hora == 0:
-                error = "La camioneta no tiene precio por hora cargado."
-            else:
-                camioneta = chofer.camioneta
-                tiempo_total = horas + (minutos / 60)
-                total = tiempo_total * float(camioneta.valor_hora)
-
-                viaje.chofer = chofer
-                viaje.camioneta = camioneta
-                viaje.horas_trabajadas = horas
-                viaje.minutos_trabajados = minutos
-                viaje.precio_total = total
-                viaje.estado = "terminado"
-                viaje.save()
-
-                return redirect("/")
-
-    return render(request, "finalizar.html", {
-        "viaje": viaje,
-        "choferes": choferes,
-        "error": error
+    return render(request, 'crear_viaje.html', {
+        'clientes': clientes,
+        'choferes': choferes,
+        'camionetas': camionetas,
+        'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
     })
 
 
+# 🔥 CAMBIAR ESTADO
+def cambiar_estado(request, id):
+    viaje = get_object_or_404(Viaje, id=id)
+
+    if viaje.estado == 'pendiente':
+        viaje.estado = 'en_curso'
+        viaje.save()
+        return redirect('/')
+
+    elif viaje.estado == 'en_curso':
+        return redirect('finalizar_viaje', id=viaje.id)
+
+    return redirect('/')
+
+
+# 🔥 FINALIZAR VIAJE
+def finalizar_viaje(request, id):
+    viaje = get_object_or_404(Viaje, id=id)
+    choferes = Chofer.objects.filter(activo=True)
+
+    if request.method == 'POST':
+        chofer_id = request.POST.get('chofer')
+        horas = int(request.POST.get('horas') or 0)
+        minutos = int(request.POST.get('minutos') or 0)
+
+        if not chofer_id:
+            return render(request, 'finalizar_viaje.html', {
+                'viaje': viaje,
+                'choferes': choferes,
+                'error': 'Tenés que seleccionar un chofer.'
+            })
+
+        if not viaje.camioneta:
+            return render(request, 'finalizar_viaje.html', {
+                'viaje': viaje,
+                'choferes': choferes,
+                'error': 'Este viaje no tiene camioneta asignada.'
+            })
+
+        if horas == 0 and minutos == 0:
+            return render(request, 'finalizar_viaje.html', {
+                'viaje': viaje,
+                'choferes': choferes,
+                'error': 'Tenés que cargar horas o minutos trabajados.'
+            })
+
+        chofer = get_object_or_404(Chofer, id=chofer_id)
+
+        total_horas = Decimal(horas) + (Decimal(minutos) / Decimal(60))
+        precio_total = total_horas * viaje.camioneta.valor_hora
+
+        viaje.chofer = chofer
+        viaje.horas_trabajadas = horas
+        viaje.minutos_trabajados = minutos
+        viaje.precio_total = precio_total
+        viaje.estado = 'terminado'
+        viaje.save()
+
+        return redirect('/')
+
+    return render(request, 'finalizar_viaje.html', {
+        'viaje': viaje,
+        'choferes': choferes,
+    })
+
+
+# 🔥 ARCHIVAR
 def archivar_viaje(request, id):
     viaje = get_object_or_404(Viaje, id=id)
     viaje.activo = False
     viaje.save()
-    return redirect("/")
+    return redirect('/')
 
 
+# 🔥 ARCHIVADOS
 def archivados(request):
-    viajes = Viaje.objects.filter(activo=False).order_by("-fecha", "-hora")
-    return render(request, "archivados.html", {"viajes": viajes})
+    viajes = Viaje.objects.filter(activo=False)
+
+    return render(request, 'archivados.html', {
+        'viajes': viajes
+    })
 
 
+# 🔥 RESTAURAR
 def restaurar_viaje(request, id):
     viaje = get_object_or_404(Viaje, id=id)
     viaje.activo = True
     viaje.save()
-    return redirect("/archivados/")
+    return redirect('/archivados/')
 
 
+# 🔥 PDF
 def comprobante(request, id):
     viaje = get_object_or_404(Viaje, id=id)
 
-    response = HttpResponse(content_type="application/pdf")
-    response["Content-Disposition"] = f'inline; filename="comprobante_{viaje.id}.pdf"'
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="viaje_{id}.pdf"'
 
     p = canvas.Canvas(response, pagesize=A4)
-    ancho, alto = A4
 
-    logo_path = "C:/www/fletera/logo.png"
-
-    if os.path.exists(logo_path):
-        p.drawImage(
-            logo_path,
-            45,
-            alto - 115,
-            width=500,
-            height=85,
-            preserveAspectRatio=True,
-            mask="auto"
-        )
-
-    p.setStrokeColor(colors.lightgrey)
-    p.roundRect(40, 90, ancho - 80, alto - 220, 10, stroke=True, fill=False)
-
-    p.setFillColor(colors.black)
-    p.setFont("Helvetica-Bold", 16)
-    p.drawString(50, alto - 150, f"Comprobante N° {viaje.id}")
-
-    p.setFont("Helvetica", 10)
-    p.drawString(50, alto - 170, f"Fecha viaje: {viaje.fecha}")
-    p.drawString(250, alto - 170, f"Hora: {viaje.hora if viaje.hora else '-'}")
-    p.drawString(50, alto - 185, f"Emitido: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
-
-    p.line(50, alto - 200, ancho - 50, alto - 200)
-
-    y = alto - 230
-
-    def fila(label, valor):
-        nonlocal y
-        p.setFont("Helvetica-Bold", 11)
-        p.drawString(60, y, label)
-        p.setFont("Helvetica", 11)
-        p.drawString(190, y, str(valor) if valor else "-")
-        y -= 25
-
-    fila("Cliente:", viaje.cliente.nombre)
-    fila("Teléfono:", viaje.cliente.telefono)
-    fila("Origen:", viaje.origen)
-    fila("Destino:", viaje.destino)
-    fila("Estado:", viaje.estado)
-
-    if viaje.chofer:
-        fila("Chofer:", viaje.chofer)
-
-    if viaje.camioneta:
-        fila("Vehículo:", viaje.camioneta.nombre)
-        fila("Valor hora:", f"$ {int(viaje.camioneta.valor_hora):,}".replace(",", "."))
-
-    if viaje.horas_trabajadas is not None:
-        fila("Tiempo:", f"{viaje.horas_trabajadas} hs {viaje.minutos_trabajados} min")
-
-    total = int(viaje.precio_total) if viaje.precio_total else 0
-
-    p.setFillColor(colors.HexColor("#d1e7dd"))
-    p.roundRect(50, y - 40, ancho - 100, 45, 8, fill=True, stroke=False)
-
-    p.setFillColor(colors.black)
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(60, y - 15, f"TOTAL: $ {total:,}".replace(",", "."))
-
-    y -= 80
-    p.setFont("Helvetica-Bold", 11)
-    p.drawString(60, y, "Firma:")
-    p.line(120, y, 300, y)
-
-    p.setFillColor(colors.grey)
-    p.setFont("Helvetica", 9)
-    p.drawString(50, 70, "Comprobante generado automáticamente")
-    p.drawString(50, 55, "Gracias por confiar en MasterFlet")
+    p.drawString(100, 800, "Comprobante de Viaje")
+    p.drawString(100, 750, f"Cliente: {viaje.cliente}")
+    p.drawString(100, 730, f"Chofer: {viaje.chofer}")
+    p.drawString(100, 710, f"Camioneta: {viaje.camioneta}")
+    p.drawString(100, 690, f"Origen: {viaje.origen}")
+    p.drawString(100, 670, f"Destino: {viaje.destino}")
+    p.drawString(100, 650, f"Fecha: {viaje.fecha}")
+    p.drawString(100, 630, f"Hora: {viaje.hora}")
+    p.drawString(100, 610, f"Horas: {viaje.horas_trabajadas} hs {viaje.minutos_trabajados} min")
+    p.drawString(100, 590, f"Precio: ${viaje.precio_total}")
+    p.drawString(100, 570, f"Estado: {viaje.estado}")
 
     p.showPage()
     p.save()

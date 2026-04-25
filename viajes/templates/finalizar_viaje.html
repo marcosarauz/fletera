@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Finalizar viaje</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+
+<div class="container mt-4">
+    <h2 class="mb-4">Finalizar viaje</h2>
+
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <div class="card p-4">
+        <p><strong>Cliente:</strong> {{ viaje.cliente }}</p>
+        <p><strong>Viaje:</strong> {{ viaje.origen }} → {{ viaje.destino }}</p>
+        <p><strong>Camioneta:</strong> {{ viaje.camioneta }}</p>
+        <p><strong>Valor por hora:</strong> ${{ viaje.camioneta.valor_hora }}</p>
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label">Chofer</label>
+                <select name="chofer" class="form-control" required>
+                    <option value="">Seleccionar chofer</option>
+                    {% for chofer in choferes %}
+                        <option value="{{ chofer.id }}">
+                            {{ chofer.nombre }} {{ chofer.apellido }} - {{ chofer.camioneta }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Horas trabajadas</label>
+                <input type="number" id="horas" name="horas" class="form-control" min="0" value="0" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Minutos trabajados</label>
+                <input type="number" id="minutos" name="minutos" class="form-control" min="0" max="59" value="0" required>
+            </div>
+
+            <div class="alert alert-success">
+                Total calculado: $<span id="total">0.00</span>
+            </div>
+
+            <button class="btn btn-success">Finalizar y calcular</button>
+            <a href="/" class="btn btn-secondary">Volver</a>
+        </form>
+    </div>
+</div>
+
+<script>
+const horasInput = document.getElementById("horas");
+const minutosInput = document.getElementById("minutos");
+const totalSpan = document.getElementById("total");
+
+const valorHora = parseFloat("{{ viaje.camioneta.valor_hora|default:0 }}".replace(",", "."));
+
+function calcularTotal() {
+    const horas = parseFloat(horasInput.value) || 0;
+    const minutos = parseFloat(minutosInput.value) || 0;
+    const totalHoras = horas + (minutos / 60);
+    const total = totalHoras * valorHora;
+    totalSpan.innerText = total.toFixed(2);
+}
+
+horasInput.addEventListener("input", calcularTotal);
+minutosInput.addEventListener("input", calcularTotal);
+calcularTotal();
+</script>
+
+</body>
+</html>

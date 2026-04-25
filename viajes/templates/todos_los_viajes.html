@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block titulo %}Todos los viajes{% endblock %}
+
+{% block contenido %}
+
+<div class="panel">
+    <h2 class="mb-4">🚚 Todos los viajes</h2>
+
+    {% for viaje in viajes %}
+        <div class="border-bottom py-3 d-flex justify-content-between align-items-center gap-3">
+
+            <div style="flex: 1;">
+                <strong>{{ viaje.origen }} → {{ viaje.destino }}</strong><br>
+                <small>{{ viaje.fecha }}</small><br>
+
+                {% if viaje.estado == "pendiente" %}
+                    <span class="badge bg-warning text-dark mt-2">Pendiente</span>
+                {% elif viaje.estado == "en_curso" %}
+                    <span class="badge bg-primary mt-2">En curso</span>
+                {% elif viaje.estado == "terminado" %}
+                    <span class="badge bg-success mt-2">Terminado</span>
+                {% else %}
+                    <span class="badge bg-secondary mt-2">{{ viaje.estado }}</span>
+                {% endif %}
+            </div>
+
+            <div>
+                <strong>
+                    {% if viaje.precio_total %}
+                        $ {{ viaje.precio_total }}
+                    {% else %}
+                        $ 0
+                    {% endif %}
+                </strong>
+            </div>
+
+            <div class="d-flex gap-2">
+
+                {% if viaje.estado == "pendiente" %}
+                    <a href="{% url 'cambiar_estado' viaje.id %}" class="btn btn-warning btn-sm">
+                        Iniciar
+                    </a>
+
+                {% elif viaje.estado == "en_curso" %}
+                    <a href="{% url 'finalizar_viaje' viaje.id %}" class="btn btn-success btn-sm">
+                        Finalizar
+                    </a>
+
+                {% elif viaje.estado == "terminado" %}
+                    <a href="{% url 'comprobante' viaje.id %}" class="btn btn-primary btn-sm">
+                        PDF
+                    </a>
+                {% endif %}
+
+                <a href="{% url 'archivar_viaje' viaje.id %}" class="btn btn-outline-secondary btn-sm">
+                    Archivar
+                </a>
+
+            </div>
+        </div>
+    {% empty %}
+        <p>No hay viajes cargados.</p>
+    {% endfor %}
+</div>
+
+{% endblock %}

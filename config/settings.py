@@ -131,3 +131,5 @@ JAZZMIN_UI_TWEAKS = {
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+GOOGLE_MAPS_API_KEY = "AIzaSyCXCdylDYAfs1hHkUJAAZ15lpa7jERovNk"

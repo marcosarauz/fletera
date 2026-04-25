@@ -16,6 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from django.contrib.auth import logout
+from django.shortcuts import redirect
 
 from viajes.views import (
     inicio,
@@ -26,16 +28,29 @@ from viajes.views import (
     archivar_viaje,
     archivados,
     restaurar_viaje,
+    todos_los_viajes,
+    reportes,
 )
+
+# 🔴 LOGOUT
+def cerrar_sesion(request):
+    logout(request)
+    return redirect('/')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', inicio),
-    path('crear/', crear_viaje),
-    path('estado/<int:id>/', cambiar_estado),
-    path('finalizar/<int:id>/', finalizar_viaje),
-    path('comprobante/<int:id>/', comprobante),
-    path('archivar/<int:id>/', archivar_viaje),
-    path('archivados/', archivados),
-    path('restaurar/<int:id>/', restaurar_viaje),
+
+    path('', inicio, name='inicio'),
+    path('viajes/', todos_los_viajes, name='viajes'),
+    path('reportes/', reportes, name='reportes'),
+
+    path('crear/', crear_viaje, name='crear_viaje'),
+    path('estado/<int:id>/', cambiar_estado, name='cambiar_estado'),
+    path('finalizar/<int:id>/', finalizar_viaje, name='finalizar_viaje'),
+    path('comprobante/<int:id>/', comprobante, name='comprobante'),
+    path('archivar/<int:id>/', archivar_viaje, name='archivar_viaje'),
+    path('archivados/', archivados, name='archivados'),
+    path('restaurar/<int:id>/', restaurar_viaje, name='restaurar_viaje'),
+
+    path('logout/', cerrar_sesion, name='logout'),
 ]
